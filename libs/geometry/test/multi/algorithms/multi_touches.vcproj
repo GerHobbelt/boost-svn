@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9.00"
-	Name="inspect"
-	ProjectGUID="{0EC8AC1C-6D1F-47FC-A06A-9CC3F924BD82}"
-	RootNamespace="boost_inspect"
+	Version="8,00"
+	Name="multi_touches"
+	ProjectGUID="{108173B8-B6F4-4366-8018-2BF282ED4881}"
+	RootNamespace="multi_touches"
 	Keyword="Win32Proj"
-	TargetFrameworkVersion="196613"
 	>
 	<Platforms>
 		<Platform
@@ -19,8 +18,9 @@
 		<Configuration
 			Name="Debug|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)\multi_touches"
 			ConfigurationType="1"
+			InheritedPropertySheets="..\..\boost.vsprops;..\..\ttmath.vsprops"
 			CharacterSet="1"
 			>
 			<Tool
@@ -41,15 +41,12 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\..\.."
+				AdditionalIncludeDirectories="../../../../..;../..;."
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
-				MinimalRebuild="true"
 				ExceptionHandling="2"
-				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
-				DebugInformationFormat="4"
+				DebugInformationFormat="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -62,8 +59,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				LinkIncremental="2"
-				AdditionalLibraryDirectories="..\..\..\..\stage\lib"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -87,14 +82,18 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
 			OutputDirectory="$(SolutionDir)$(ConfigurationName)"
-			IntermediateDirectory="$(ConfigurationName)"
+			IntermediateDirectory="$(ConfigurationName)\multi_touches"
 			ConfigurationType="1"
+			InheritedPropertySheets="..\..\boost.vsprops;..\..\ttmath.vsprops"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
@@ -115,16 +114,10 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				Optimization="2"
-				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="..\..\..\.."
+				AdditionalIncludeDirectories="../../../../..;../..;."
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				ExceptionHandling="2"
-				RuntimeLibrary="2"
-				EnableFunctionLevelLinking="true"
 				UsePrecompiledHeader="0"
-				WarningLevel="3"
-				DebugInformationFormat="3"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -137,9 +130,6 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				LinkIncremental="1"
-				AdditionalLibraryDirectories="..\..\..\..\stage\lib"
-				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
@@ -164,6 +154,9 @@
 				Name="VCAppVerifierTool"
 			/>
 			<Tool
+				Name="VCWebDeploymentTool"
+			/>
+			<Tool
 				Name="VCPostBuildEventTool"
 			/>
 		</Configuration>
@@ -171,76 +164,10 @@
 	<References>
 	</References>
 	<Files>
-		<Filter
-			Name="Source Files"
-			Filter="cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx"
-			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
+		<File
+			RelativePath=".\multi_touches.cpp"
 			>
-			<File
-				RelativePath="..\..\apple_macro_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\ascii_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\assert_macro_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\copyright_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\crlf_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\end_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\inspect.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\license_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\link_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\minmax_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\path_name_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\tab_check.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\unnamed_namespace_check.cpp"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;inc;xsd"
-			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
-			>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav"
-			UniqueIdentifier="{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}"
-			>
-		</Filter>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>
