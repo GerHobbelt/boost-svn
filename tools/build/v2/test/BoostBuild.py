@@ -31,7 +31,7 @@ annotations = []
 def print_annotation(name, value, xml):
     """Writes some named bits of information about test run.
     """
-    if xml:      
+    if xml:
         print escape(name) + " {{{"
         print escape(value)
         print "}}}"
@@ -39,7 +39,7 @@ def print_annotation(name, value, xml):
         print name + " {{{"
         print value
         print "}}}"
-        
+
 def flush_annotations(xml=0):
     global annotations
     for ann in annotations:
@@ -56,6 +56,14 @@ defer_annotations = 0
 def set_defer_annotations(n):
     global defer_annotations
     defer_annotations = n
+
+
+def annotate_stack_trace(tb=None):
+    if tb is None:
+        trace = TestCmd.caller(traceback.extract_stack(), 1)
+    else:
+        trace = TestCmd.caller(traceback.extract_tb(tb), 0)
+    annotation("stacktrace", trace)
 
 
 def annotation(name, value):
@@ -113,7 +121,7 @@ def prepare_suffix_map(toolset):
             suffixes['.implib'] = '.lib'
     if os.__dict__.has_key('uname') and (os.uname()[0] == 'Darwin'):
         suffixes['.dll'] = '.dylib'
-    
+
     lib_prefix = "lib"
     dll_prefix = "lib"
     if cygwin:
@@ -383,7 +391,7 @@ class Tester(TestCmd.TestCmd):
     def rm(self, names):
         if not type(names) == types.ListType:
             names = [names]
-            
+
         if names == ["."]:
             # If we're deleting the entire workspace, there's no
             # need to wait for a clock tick.
@@ -482,7 +490,7 @@ class Tester(TestCmd.TestCmd):
 
             annotation("failure", '"%s" returned %d%s'
                 % (kw['program'], _status(self), expect))
-            
+
             annotation("reason", "unexpected status returned by bjam")
             self.fail_test(1)
 
@@ -509,7 +517,7 @@ class Tester(TestCmd.TestCmd):
             self.fail_test(1, dump_stdio=False)
 
         if not expected_duration is None:
-            actual_duration = self.last_build_time_finish - self.last_build_time_start 
+            actual_duration = self.last_build_time_finish - self.last_build_time_start
             if (actual_duration > expected_duration):
                 print "Test run lasted %f seconds while it was expected to " \
                     "finish in under %f seconds." % (actual_duration,
@@ -565,7 +573,7 @@ class Tester(TestCmd.TestCmd):
         else:
             return result
 
-    def fail_test(self, condition, dump_stdio=True, *args):
+    def fail_test(self, condition, dump_stdio=True, dump_stack=True):
         if not condition:
             return
 
@@ -590,8 +598,8 @@ class Tester(TestCmd.TestCmd):
             print "The failed command was:"
             print ' '.join(self.last_program_invocation)
 
-        at = TestCmd.caller(traceback.extract_stack(), 0)
-        annotation("stacktrace", at)
+        if dump_stack:
+            annotate_stack_trace()
         sys.exit(1)
 
     # A number of methods below check expectations with actual difference
@@ -693,7 +701,7 @@ class Tester(TestCmd.TestCmd):
             self.ignore('*.pdb')       # MSVC program database files.
             self.ignore('*.rsp')       # Response files.
             self.ignore('*.tds')       # Borland debug symbols.
-            self.ignore('*.manifest')  # MSVC DLL manifests.            
+            self.ignore('*.manifest')  # MSVC DLL manifests.
 
         # Debug builds of bjam built with gcc produce this profiling data.
         self.ignore('gmon.out')
@@ -941,6 +949,7 @@ class List:
         result = List()
         result.l = self.l[:] + other.l[:]
         return result
+
 
 # Quickie tests. Should use doctest instead.
 if __name__ == '__main__':
