@@ -568,7 +568,7 @@ class Tester(TestCmd.TestCmd):
         f = open(self.glob_file(name), "rb")
         lines = f.readlines()
         result = string.join(map(string.rstrip, lines), "\n")
-        if lines and lines[-1][-1] == '\n':
+        if lines and lines[-1][-1] != '\n':
             return result + '\n'
         else:
             return result
@@ -901,7 +901,7 @@ class List:
     def __init__(self, s=""):
         elements = []
         if isinstance(s, type("")):
-            # Have to handle espaced spaces correctly.
+            # Have to handle escaped spaces correctly.
             s = string.replace(s, "\ ", '\001')
             elements = string.split(s)
         else:
