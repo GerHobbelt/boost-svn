@@ -399,11 +399,10 @@ static void make1b( state * pState )
 
     /* Now ready to build target 't', if dependencies built OK. */
 
-    /* Collect status from dependencies. If -n was passed then
-     * act as though all dependencies built correctly.  The only
-     * way they can fail is if UPDATE_NOW was called.  If
-     * the dependencies can't be found or we got an interrupt,
-     * we can't get here.
+    /* Collect status from dependencies. If -n was passed then act as though all
+     * dependencies built correctly. The only way they can fail is if UPDATE_NOW
+     * was called. If the dependencies can not be found or we got an interrupt,
+     * we can not get here.
      */
     if ( !globs.noexec )
     {
@@ -434,10 +433,12 @@ static void make1b( state * pState )
         if ( ( pState->t->flags & ( T_FLAG_RMOLD | T_FLAG_NOTFILE ) ) == T_FLAG_RMOLD )
         {
             if ( !unlink( object_str( pState->t->boundname ) ) )
-                printf( "...removing outdated %s\n", object_str( pState->t->boundname ) );
+                printf( "...removing outdated %s\n", object_str(
+                    pState->t->boundname ) );
         }
         else
-            printf( "...skipped %s for lack of %s...\n", object_str( pState->t->name ), failed_name );
+            printf( "...skipped %s for lack of %s...\n", object_str(
+                pState->t->name ), failed_name );
     }
 
     if ( pState->t->status == EXEC_CMD_OK )
@@ -507,8 +508,8 @@ static void make1b( state * pState )
     {
         ++pState->t->semaphore->asynccnt;
         if ( DEBUG_EXECCMD )
-            printf( "SEM: %s now used by %s\n", object_str( pState->t->semaphore->name ),
-                object_str( pState->t->name ) );
+            printf( "SEM: %s now used by %s\n", object_str(
+                pState->t->semaphore->name ), object_str( pState->t->name ) );
     }
 #endif
 
@@ -540,7 +541,8 @@ static void make1c( state * pState )
             rule_name = object_str( cmd->rule->name );
             target = object_str( list_front( lol_get( &cmd->args, 0 ) ) );
             if ( globs.noexec )
-                out_action( rule_name, target, cmd->buf->value, "", "", EXIT_OK );
+                out_action( rule_name, target, cmd->buf->value, "", "", EXIT_OK
+                    );
         }
 
         if ( globs.noexec )
@@ -552,7 +554,7 @@ static void make1c( state * pState )
         {
             /* Pop state first because exec_cmd() could push state. */
             pop_state( &state_stack );
-            exec_cmd( cmd->buf->value, make_closure, pState->t, cmd->shell, rule_name,
+            exec_cmd( cmd->buf, make_closure, pState->t, cmd->shell, rule_name,
                 target );
         }
     }
@@ -885,7 +887,7 @@ static void make1d( state * pState )
     /* If the command was interrupted or failed and the target is not
      * "precious", remove the targets.
      */
-    if (status != EXEC_CMD_OK) 
+    if ( status != EXEC_CMD_OK )
     {
         LIST * targets = lol_get( &cmd->args, 0 );
         LISTITER iter = list_begin( targets ), end = list_end( targets );
@@ -894,7 +896,7 @@ static void make1d( state * pState )
             int need_unlink = 1;
             TARGET* t = bindtarget ( list_item( iter ) );
             if (t->flags & T_FLAG_PRECIOUS)
-            {                
+            {
                 need_unlink = 0;
             }
             if (need_unlink && !unlink( object_str( list_item( iter ) ) ) )
@@ -968,9 +970,6 @@ static CMD * make1cmds( TARGET * t )
         LIST         * nt;
         LIST         * ns;
         ACTIONS      * a1;
-        int            start;
-        int            chunk;
-        int            length;
 
         /* Only do rules with commands to execute. If this action has already
          * been executed, use saved status.
@@ -1006,7 +1005,8 @@ static CMD * make1cmds( TARGET * t )
         swap_settings( &settings_module, &settings_target, rule->module, t );
         if ( list_empty( shell ) )
         {
-            shell = var_get( rule->module, constant_JAMSHELL );  /* shell is per-target */
+            /* shell is per-target */
+            shell = var_get( rule->module, constant_JAMSHELL );
         }
 
         /* If we had 'actions xxx bind vars' we bind the vars now. */
@@ -1028,46 +1028,59 @@ static CMD * make1cmds( TARGET * t )
          *
          * Note we loop through at least once, for sourceless actions.
          */
-
-        start = 0;
-        chunk = length = list_length( ns );
-
-        do
         {
-            /* Build cmd: cmd_new consumes its lists. */
-            CMD * cmd = cmd_new( rule,
-                list_copy( nt ),
-                list_sublist( ns, start, chunk ),
-                list_copy( shell ) );
+            int const length = list_length( ns );
+            int start = 0;
+            int chunk = length;
+            LIST * cmd_targets = L0;
+            LIST * cmd_shell = L0;
+            do
+            {
+                CMD * cmd;
+                LIST * cmd_sources = list_sublist( ns, start, chunk );
 
-            if ( cmd )
-            {
-                /* It fit: chain it up. */
-                if ( !cmds ) cmds = cmd;
-                else cmds->tail->next = cmd;
-                cmds->tail = cmd;
-                start += chunk;
-            }
-            else if ( ( actions->flags & RULE_PIECEMEAL ) && ( chunk > 1 ) )
-            {
-                /* Reduce chunk size slowly. */
-                chunk = chunk * 9 / 10;
-            }
-            else
-            {
-                /* Too long and not splittable. */
-                printf( "%s actions too long (max %d):\n", object_str( rule->name ), MAXLINE
-                    );
+                /* Build cmd: cmd_new() consumes its lists if successful. */
+                if ( list_empty( cmd_targets ) ) cmd_targets = list_copy( nt );
+                if ( list_empty( cmd_shell ) ) cmd_shell = list_copy( shell );
+                cmd = cmd_new( rule, cmd_targets, cmd_sources, cmd_shell );
 
-                /* Tell the user what didn't fit. */
-                cmd = cmd_new( rule, list_copy( nt ),
-                    list_sublist( ns, start, chunk ),
-                    list_new( object_copy( constant_percent ) ) );
-                fputs( cmd->buf->value, stdout );
-                exit( EXITBAD );
+                if ( cmd )
+                {
+                    /* It fit: chain it up. */
+                    if ( !cmds ) cmds = cmd;
+                    else cmds->tail->next = cmd;
+                    cmds->tail = cmd;
+                    start += chunk;
+
+                    /* Mark consumed lists. */
+                    cmd_targets = L0;
+                    cmd_shell = L0;
+                }
+                else
+                {
+                    if ( ( actions->flags & RULE_PIECEMEAL ) && ( chunk > 1 ) )
+                    {
+                        /* Reduce chunk size slowly. */
+                        chunk = chunk * 9 / 10;
+                    }
+                    else
+                    {
+                        /* Too long and not splittable. */
+                        printf( "%s action is too long (max %d):\n", object_str(
+                            rule->name ), MAXLINE );
+
+                        /* Tell the user what did not fit. */
+                        cmd = cmd_new( rule, cmd_targets, cmd_sources,
+                            list_new( object_copy( constant_percent ) ) );
+                        fputs( cmd->buf->value, stdout );
+                        exit( EXITBAD );
+                    }
+
+                    list_free( cmd_sources );
+                }
             }
+            while ( start < length );
         }
-        while ( start < length );
 
         /* These were always copied when used. */
         list_free( nt );

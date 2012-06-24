@@ -75,7 +75,7 @@ def annotation(name, value):
 
 
 def get_toolset():
-    toolset = None;
+    toolset = None
     for arg in sys.argv[1:]:
         if not arg.startswith('-'):
             toolset = arg
@@ -244,7 +244,7 @@ class Tester(TestCmd.TestCmd):
                 elif os.uname()[0] == 'Linux':
                     cpu = os.uname()[4]
                     if re.match("i.86", cpu):
-                        jam_build_dir = "bin.linuxx86";
+                        jam_build_dir = "bin.linuxx86"
                     else:
                         jam_build_dir = "bin.linux" + os.uname()[4]
                 elif os.uname()[0] == 'SunOS':
@@ -367,7 +367,7 @@ class Tester(TestCmd.TestCmd):
             pass
 
         os.rename(old, new)
-        self.touch(new);
+        self.touch(new)
 
     def copy(self, src, dst):
         self.wait_for_time_change_since_last_build()
@@ -441,9 +441,8 @@ class Tester(TestCmd.TestCmd):
 
         try:
             if os.path.isabs(subdir):
-                if stderr:
-                    print "You must pass a relative directory to subdir <"+subdir+">."
-                status = 1
+                print("You must pass a relative directory to subdir <%s>." %
+                    subdir)
                 return
 
             self.previous_tree = tree.build_tree(self.workdir)
@@ -573,11 +572,12 @@ class Tester(TestCmd.TestCmd):
         else:
             return result
 
-    def fail_test(self, condition, dump_stdio=True, dump_stack=True):
+    def fail_test(self, condition, dump_difference=True, dump_stdio=True,
+        dump_stack=True):
         if not condition:
             return
 
-        if hasattr(self, 'difference'):
+        if dump_difference and hasattr(self, 'difference'):
             f = StringIO.StringIO()
             self.difference.pprint(f)
             annotation("changes caused by the last build command", f.getvalue())
@@ -593,7 +593,7 @@ class Tester(TestCmd.TestCmd):
             if os.path.isdir(path):
                 shutil.rmtree(path, ignore_errors=False)
             elif os.path.exists(path):
-                raise "Path " + path + " already exists and is not a directory";
+                raise "Path " + path + " already exists and is not a directory"
             shutil.copytree(self.workdir, path)
             print "The failed command was:"
             print ' '.join(self.last_program_invocation)
@@ -905,7 +905,7 @@ class List:
             s = string.replace(s, "\ ", '\001')
             elements = string.split(s)
         else:
-            elements = s;
+            elements = s
 
         self.l = []
         for e in elements:

@@ -16,6 +16,7 @@
 #ifndef EXECCMD_H
 #define EXECCMD_H
 
+#include "strings.h"
 #include <time.h>
 
 typedef struct timing_info
@@ -26,14 +27,23 @@ typedef struct timing_info
     time_t end;
 } timing_info;
 
+typedef void (* ExecCmdCallback)
+(
+    void * closure,
+    int status,
+    timing_info *,
+    char const * invoked_command,
+    char const * command_output
+) ;
+
 void exec_cmd
 (
-    const char * string,
-    void (* func)( void * closure, int status, timing_info *, const char *, const char * ),
+    string const * command,
+    ExecCmdCallback func,
     void * closure,
     LIST * shell,
-    const char * action,
-    const char * target
+    char const * action,
+    char const * target
 );
 
 int exec_wait();
