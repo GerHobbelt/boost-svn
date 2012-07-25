@@ -149,10 +149,10 @@ class SVNTreeNode:
         break
     if child_already_exists == 0:
       self.children.append(newchild)
-      newchild.path = os.path.join (self.path, newchild.name)      
+      newchild.path = os.path.join (self.path, newchild.name)
 
     # If you already have the node,
-    else:      
+    else:
       if newchild.children is None:
         # this is the 'end' of the chain, so copy any content here.
         a.contents = newchild.contents
@@ -357,7 +357,7 @@ def handle_dir(path, current_parent, load_props, ignore_svn):
       fprops = {}
     c = SVNTreeNode(os.path.basename(f), None,
                                          fcontents, fprops)
-    c.mtime = os.stat(f)[stat.ST_MTIME]
+    c.mtime = os.stat(f).st_mtime
     current_parent.add_child(c)
 
   # for each subdir, create a node, walk its tree, add it as a child
@@ -368,7 +368,7 @@ def handle_dir(path, current_parent, load_props, ignore_svn):
       dprops = {}
     new_dir_node = SVNTreeNode(os.path.basename(d), [], None, dprops)
     handle_dir(d, new_dir_node, load_props, ignore_svn)
-    new_dir_node.mtime = os.stat(f)[stat.ST_MTIME]
+    new_dir_node.mtime = os.stat(f).st_mtime
     current_parent.add_child(new_dir_node)
 
 def get_child(node, name):
@@ -561,7 +561,7 @@ def build_tree_from_checkout(lines):
 
   root = SVNTreeNode(root_node_name)
   rm = re.compile ('^([MAGCUD_ ][MAGCUD_ ]) (.+)')
-  
+
   for line in lines:
     match = rm.search(line)
     if match and match.groups():
@@ -583,7 +583,7 @@ def build_tree_from_commit(lines):
   root = SVNTreeNode(root_node_name)
   rm1 = re.compile ('^(\w+)\s+(.+)')
   rm2 = re.compile ('^Transmitting')
-  
+
   for line in lines:
     match = rm2.search(line)
     if not match:
@@ -602,7 +602,7 @@ def build_tree_from_commit(lines):
 #
 #          'status', 'wc_rev', 'repos_rev'
 #             ... and possibly 'locked', 'copied', IFF columns non-empty.
-# 
+#
 
 def build_tree_from_status(lines):
   "Return a tree derived by parsing the output LINES from 'st'."
@@ -615,7 +615,7 @@ def build_tree_from_status(lines):
     repos_rev = match.group(1)
   else:
     repos_rev = '?'
-    
+
   # Try http://www.wordsmith.org/anagram/anagram.cgi?anagram=ACDRMGU
   rm = re.compile ('^([MACDRUG_ ][MACDRUG_ ])(.)(.)   .   [^0-9-]+(\d+|-)(.{23})(.+)')
   for line in lines:

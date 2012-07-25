@@ -386,7 +386,12 @@ int main( int argc, char * * argv, char * * arg_environ )
 #endif
 
         /* Set JAMDATE. */
-        var_set( root_module(), constant_JAMDATE, list_new( outf_time(time(0)) ), VAR_SET );
+        {
+            timestamp current;
+            timestamp_current( &current );
+            var_set( root_module(), constant_JAMDATE, list_new( outf_time(
+                &current ) ), VAR_SET );
+        }
 
         /* Set JAM_VERSION. */
         var_set( root_module(), constant_JAM_VERSION,
@@ -439,7 +444,7 @@ int main( int argc, char * * argv, char * * arg_environ )
         /* Load up variables set on command line. */
         for ( n = 0; ( s = getoptval( optv, 's', n ) ); ++n )
         {
-            char *symv[ 2 ];
+            char * symv[ 2 ];
             symv[ 0 ] = s;
             symv[ 1 ] = 0;
             var_defines( root_module(), symv, 1 );
@@ -450,7 +455,7 @@ int main( int argc, char * * argv, char * * arg_environ )
          */
         for ( n = 0; n < arg_c; ++n )
             var_set( root_module(), constant_ARGV, list_new( object_new(
-                arg_v[n] ) ), VAR_APPEND );
+                arg_v[ n ] ) ), VAR_APPEND );
 
         /* Initialize built-in rules. */
         load_builtins();
@@ -562,7 +567,7 @@ int main( int argc, char * * argv, char * * arg_environ )
     /* Widely scattered cleanup. */
     file_done();
     rules_done();
-    stamps_done();
+    timestamp_done();
     search_done();
     class_done();
     modules_done();
