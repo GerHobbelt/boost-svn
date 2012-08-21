@@ -4,19 +4,21 @@
  * This file is part of Jam - see jam.c for Copyright information.
  */
 
-/*  This file is ALSO:
- *  Copyright 2001-2004 David Abrahams.
- *  Copyright 2005 Rene Rivera.
- *  Distributed under the Boost Software License, Version 1.0.
- *  (See accompanying file LICENSE_1_0.txt or http://www.boost.org/LICENSE_1_0.txt)
+/* This file is ALSO:
+ * Copyright 2001-2004 David Abrahams.
+ * Copyright 2005 Rene Rivera.
+ * Distributed under the Boost Software License, Version 1.0.
+ * (See accompanying file LICENSE_1_0.txt or copy at
+ * http://www.boost.org/LICENSE_1_0.txt)
  */
 
 /*
  * filent.c - scan directories and archives on NT
  *
  * External routines:
- *  file_archscan() - scan an archive for files
- *  file_mkdir()    - create a directory
+ *  file_archscan()                 - scan an archive for files
+ *  file_mkdir()                    - create a directory
+ *  file_supported_fmt_resolution() - file modification timestamp resolution
  *
  * External routines called only via routines in filesys.c:
  *  file_collect_dir_content_() - collects directory content information
@@ -84,7 +86,7 @@ int file_collect_dir_content_( file_info_t * const d )
     }
 
     /* The following code for collecting information about all files in a folder
-     * needs to be synchronized with how the file_query() operation is
+     * needs to be kept synchronized with how the file_query() operation is
      * implemented (collects information about a single file).
      */
     {
@@ -110,7 +112,7 @@ int file_collect_dir_content_( file_info_t * const d )
             path_build( &f, pathname );
 
             pathname_obj = object_new( pathname->value );
-            path_key__register_long_path( pathname_obj );
+            path_register_key( pathname_obj );
             files = list_push_back( files, pathname_obj );
             {
                 file_info_t * const ff = file_info( pathname_obj );
@@ -183,9 +185,9 @@ int file_mkdir( char const * const path )
 
 /*
  * file_query_() - query information about a path from the OS
- * 
+ *
  * The following code for collecting information about a single file needs to be
- * synchronized with how the file_collect_dir_content_() operation is
+ * kept synchronized with how the file_collect_dir_content_() operation is
  * implemented (collects information about all files in a folder).
  */
 
@@ -202,6 +204,28 @@ int file_query_( file_info_t * const info )
     info->is_file = !info->is_dir;
     timestamp_from_filetime( &info->time, &fileData.ftLastWriteTime );
     return 0;
+}
+
+
+/*
+ * file_supported_fmt_resolution() - file modification timestamp resolution
+ *
+ * Returns the minimum file modification timestamp resolution supported by this
+ * Boost Jam implementation. File modification timestamp changes of less than
+ * the returned value might not be recognized.
+ *
+ * Does not take into consideration any OS or file system related restrictions.
+ *
+ * Return value 0 indicates that any value supported by the OS is also supported
+ * here.
+ */
+
+void file_supported_fmt_resolution( timestamp * const t )
+{
+    /* On Windows we support nano-second file modification timestamp resolution,
+     * just the same as the Windows OS itself.
+     */
+    timestamp_init( t, 0, 0 );
 }
 
 

@@ -15,8 +15,9 @@
  * fileunix.c - manipulate file names and scan directories on UNIX/AmigaOS
  *
  * External routines:
- *  file_archscan() - scan an archive for files
- *  file_mkdir()    - create a directory
+ *  file_archscan()                 - scan an archive for files
+ *  file_mkdir()                    - create a directory
+ *  file_supported_fmt_resolution() - file modification timestamp resolution
  *
  * External routines called only via routines in filesys.c:
  *  file_collect_dir_content_() - collects directory content information
@@ -167,7 +168,7 @@ void file_dirscan_( file_info_t * const d, scanback func, void * closure )
 
 int file_mkdir( char const * const path )
 {
-    return mkdir( path, 0766 );
+    return mkdir( path, 0777 );
 }
 
 
@@ -178,6 +179,28 @@ int file_mkdir( char const * const path )
 int file_query_( file_info_t * const info )
 {
     return file_query_posix_( info );
+}
+
+
+/*
+ * file_supported_fmt_resolution() - file modification timestamp resolution
+ *
+ * Returns the minimum file modification timestamp resolution supported by this
+ * Boost Jam implementation. File modification timestamp changes of less than
+ * the returned value might not be recognized.
+ *
+ * Does not take into consideration any OS or file system related restrictions.
+ *
+ * Return value 0 indicates that any value supported by the OS is also supported
+ * here.
+ */
+
+void file_supported_fmt_resolution( timestamp * const t )
+{
+    /* The current implementation does not support file modification timestamp
+     * resolution of less than one second.
+     */
+    timestamp_init( t, 1, 0 );
 }
 
 
