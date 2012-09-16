@@ -10,11 +10,12 @@
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/xtime.hpp>
-#include <boost/thread/condition.hpp>
+#include <boost/thread/condition_variable.hpp>
 #include <boost/thread/locks.hpp>
 #include <boost/thread/once.hpp>
 #include <boost/thread/tss.hpp>
 #include <boost/throw_exception.hpp>
+
 #ifdef __GLIBC__
 #include <sys/sysinfo.h>
 #elif defined(__APPLE__) || defined(__FreeBSD__)
@@ -24,14 +25,23 @@
 #include <unistd.h>
 #endif
 
-#include <libs/thread/src/pthread/timeconv.inl>
+#include "./timeconv.inl"
 
 namespace boost
 {
     namespace detail
     {
         thread_data_base::~thread_data_base()
-        {}
+        {
+          {
+            for (notify_list_t::iterator i = notify.begin(), e = notify.end();
+                    i != e; ++i)
+            {
+                i->second->unlock();
+                i->first->notify_all();
+            }
+          }
+        }
 
         struct thread_exit_callback_node
         {
@@ -175,6 +185,8 @@ namespace boost
 
             void run()
             {}
+            void notify_all_at_thread_exit(condition_variable*, mutex*)
+            {}
 
         private:
             externally_launched_thread(externally_launched_thread&);
@@ -304,6 +316,12 @@ namespace boost
                 thread_info.reset();
             }
         }
+        else
+        {
+#ifdef BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
+          boost::throw_exception(thread_resource_error(system::errc::invalid_argument, "boost thread: thread not joinable"));
+#endif
+        }
     }
 
     bool thread::do_try_join_until(struct timespec const &timeout)
@@ -353,8 +371,14 @@ namespace boost
             {
                 thread_info.reset();
             }
+            return true;
         }
-        return true;
+        else
+        {
+#ifdef BOOST_THREAD_THROW_IF_PRECONDITION_NOT_SATISFIED
+          boost::throw_exception(thread_resource_error(system::errc::invalid_argument, "boost thread: thread not joinable"));
+#endif
+        }
     }
 
     bool thread::joinable() const BOOST_NOEXCEPT
@@ -363,7 +387,7 @@ namespace boost
     }
 
 
-    void thread::detach() BOOST_NOEXCEPT
+    void thread::detach()
     {
         detail::thread_data_ptr local_thread_info;
         thread_info.swap(local_thread_info);
@@ -426,46 +450,6 @@ namespace boost
                 }
             }
         }
-
-#ifdef BOOST_THREAD_USES_CHRONO
-        void
-        sleep_for(const chrono::nanoseconds& ns)
-        {
-            using namespace chrono;
-            boost::detail::thread_data_base* const thread_info=boost::detail::get_current_thread_data();
-
-            if(thread_info)
-            {
-              unique_lock<mutex> lk(thread_info->sleep_mutex);
-              while(cv_status::no_timeout==thread_info->sleep_condition.wait_for(lk,ns)) {}
-            }
-            else
-            {
-              if (ns >= nanoseconds::zero())
-              {
-
-  #   if defined(BOOST_HAS_PTHREAD_DELAY_NP)
-                timespec ts;
-                ts.tv_sec = static_cast<long>(duration_cast<seconds>(ns).count());
-                ts.tv_nsec = static_cast<long>((ns - seconds(ts.tv_sec)).count());
-                BOOST_VERIFY(!pthread_delay_np(&ts));
-  #   elif defined(BOOST_HAS_NANOSLEEP)
-                timespec ts;
-                ts.tv_sec = static_cast<long>(duration_cast<seconds>(ns).count());
-                ts.tv_nsec = static_cast<long>((ns - seconds(ts.tv_sec)).count());
-                //  nanosleep takes a timespec that is an offset, not
-                //  an absolute time.
-                nanosleep(&ts, 0);
-  #   else
-                mutex mx;
-                mutex::scoped_lock lock(mx);
-                condition_variable cond;
-                cond.wait_for(lock, ns);
-  #   endif
-              }
-            }
-        }
-#endif
 
         void yield() BOOST_NOEXCEPT
         {
@@ -665,7 +649,7 @@ namespace boost
                     return &current_node->second;
                 }
             }
-            return NULL;
+            return 0;
         }
 
         void* get_tss_data(void const* key)
@@ -674,7 +658,7 @@ namespace boost
             {
                 return current_node->value;
             }
-            return NULL;
+            return 0;
         }
 
         void add_new_tss_node(void const* key,
@@ -711,12 +695,21 @@ namespace boost
                     erase_tss_node(key);
                 }
             }
-            else
+            else if(func || (tss_data!=0))
             {
                 add_new_tss_node(key,func,tss_data);
             }
         }
     }
+    BOOST_THREAD_DECL void notify_all_at_thread_exit(condition_variable& cond, unique_lock<mutex> lk)
+    {
+      detail::thread_data_base* const current_thread_data(detail::get_current_thread_data());
+      if(current_thread_data)
+      {
+        current_thread_data->notify_all_at_thread_exit(&cond, lk.release());
+      }
+    }
+
 
 
 }

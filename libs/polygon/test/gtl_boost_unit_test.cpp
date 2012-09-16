@@ -6,7 +6,9 @@
   http://www.boost.org/LICENSE_1_0.txt).
 */
 #include <iostream>
+//#define BOOST_POLYGON_NO_DEPS
 #include <boost/polygon/polygon.hpp>
+
 namespace gtl = boost::polygon;
 using namespace boost::polygon::operators;
 #include <time.h>
@@ -3644,6 +3646,74 @@ int main() {
         }
       }
     }
+  }
+
+  {
+    polygon_set_data<int> t_eq;
+    t_eq.insert(rectangle_data<int>(0, 0, 5, 10));
+    t_eq.insert(rectangle_data<int>(0, 5, 5, 10));
+    std::cout << t_eq <<std::endl;
+    polygon_set_data<int> t_eq2;
+    t_eq2 += rectangle_data<int>(0, 0, 5, 10);
+    std::cout << area(t_eq) <<std::endl;
+    std::cout << area(t_eq2) <<std::endl;   
+    std::cout << t_eq <<std::endl;
+    std::cout << t_eq2 <<std::endl;   
+    if(t_eq != t_eq2) {
+      std::cout << "equivalence failed" << std::endl;
+      return 1;
+    }    
+  }
+
+  if (1) {
+    using namespace boost::polygon;
+    typedef point_data<int> Point;
+    typedef segment_data<int> Dls;
+    Point pt1(0, 0);
+    Point pt2(10, 10);
+    Point pt3(20, 20);
+    Point pt4(20, 0);
+    Dls dls1(pt1, pt2);
+    Dls dls2(pt1, pt3);
+    Dls dls3(pt1, pt4);
+    Dls dls4(pt2, pt1);
+    typedef std::vector<segment_data<int> > Dlss;
+    Dlss dlss, result;
+    dlss.push_back(dls1);
+    dlss.push_back(dls2);
+    dlss.push_back(dls3);
+    dlss.push_back(dls4);
+    rectangle_data<int> rect;
+    envelope_segments(dlss.begin(), dlss.end(), &rect);
+    assert_s(area(rect) == 400.0, "envelope");
+    intersect_segments(dlss.begin(), dlss.end(), &result);
+    dlss.swap(result);
+    for (Dlss::iterator itr = dlss.begin(); itr != dlss.end(); ++itr) {
+      std::cout << *itr << std::endl;
+    }
+    assert_s(dlss.size() == 5, "intersection");
+    Dls dls5(Point(0,5), Point(5,0));
+    dlss.push_back(dls5);
+    std::cout << std::endl;
+    result.clear();
+    intersect_segments(dlss.begin(), dlss.end(), &result);
+    dlss.swap(result);
+    for (Dlss::iterator itr = dlss.begin(); itr != dlss.end(); ++itr) {
+      std::cout << *itr << std::endl;
+    }
+    assert_s(dlss.size() == 11, "intersection2");
+  }
+  
+  if (1) {
+    using namespace boost::polygon;
+    std::vector<std::pair<std::size_t, segment_data<int> > > segs;
+    segment_data<int> sarray[2];
+    sarray[0] = segment_data<int>(point_data<int>(0,0), point_data<int>(10,10));
+    sarray[1] = segment_data<int>(point_data<int>(10,0), point_data<int>(0,10));
+    std::iterator_traits<segment_data<int>*>::value_type s = sarray[0];
+    intersect_segments(sarray, sarray+2, &segs);
+    std::cout << segs.size() << std::endl;
+    assert_s(segs.size() == 4, "intersection3");
   }
 
   std::cout << "ALL TESTS COMPLETE\n";

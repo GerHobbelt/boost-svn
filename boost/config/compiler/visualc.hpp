@@ -184,6 +184,16 @@
 #endif
 
 //
+// TR1 features:
+//
+#if _MSC_VER >= 1700
+// # define BOOST_HAS_TR1_HASH			// don't know if this is true yet.
+// # define BOOST_HAS_TR1_TYPE_TRAITS	// don't know if this is true yet.
+# define BOOST_HAS_TR1_UNORDERED_MAP
+# define BOOST_HAS_TR1_UNORDERED_SET
+#endif
+
+//
 // C++0x features
 //
 //   See above for BOOST_NO_LONG_LONG
@@ -207,6 +217,7 @@
 // C++ features supported by VC++ 11 (aka 2012)
 //
 #if _MSC_VER < 1700
+#  define BOOST_NO_CXX11_DECLTYPE_N3276
 #  define BOOST_NO_CXX11_RANGE_BASED_FOR
 #  define BOOST_NO_CXX11_SCOPED_ENUMS
 #endif // _MSC_VER < 1700
@@ -215,7 +226,6 @@
 #define BOOST_NO_CXX11_CHAR16_T
 #define BOOST_NO_CXX11_CHAR32_T
 #define BOOST_NO_CXX11_CONSTEXPR
-#define BOOST_NO_CXX11_DECLTYPE_N3276
 #define BOOST_NO_CXX11_DEFAULTED_FUNCTIONS
 #define BOOST_NO_CXX11_DELETED_FUNCTIONS
 #define BOOST_NO_CXX11_EXPLICIT_CONVERSION_OPERATORS

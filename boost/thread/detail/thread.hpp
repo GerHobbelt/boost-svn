@@ -23,6 +23,8 @@
 #include <boost/bind.hpp>
 #include <stdlib.h>
 #include <memory>
+//#include <vector>
+//#include <utility>
 #include <boost/utility/enable_if.hpp>
 #include <boost/type_traits/remove_reference.hpp>
 #include <boost/io/ios_state.hpp>
@@ -69,10 +71,13 @@ namespace boost
                 f(f_)
             {}
 #endif
+            //thread_data() {}
+
             void run()
             {
                 f();
             }
+
         private:
             F f;
         };
@@ -364,11 +369,17 @@ namespace boost
 #endif
 #if defined(BOOST_THREAD_PLATFORM_WIN32)
         bool timed_join(const system_time& abs_time);
-
-#ifdef BOOST_THREAD_USES_CHRONO
-        bool try_join_until(const chrono::time_point<chrono::system_clock, chrono::nanoseconds>& tp);
-#endif
+    private:
+        bool do_try_join_until(uintmax_t milli);
     public:
+#ifdef BOOST_THREAD_USES_CHRONO
+        bool try_join_until(const chrono::time_point<chrono::system_clock, chrono::nanoseconds>& tp)
+        {
+          chrono::milliseconds rel_time= chrono::ceil<chrono::milliseconds>(tp-chrono::system_clock::now());
+          return do_try_join_until(rel_time.count());
+        }
+#endif
+
 
 #else
         bool timed_join(const system_time& abs_time)
@@ -400,7 +411,7 @@ namespace boost
             return timed_join(get_system_time()+rel_time);
         }
 
-        void detach() BOOST_NOEXCEPT;
+        void detach();
 
         static unsigned hardware_concurrency() BOOST_NOEXCEPT;
 

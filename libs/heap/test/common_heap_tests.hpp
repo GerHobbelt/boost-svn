@@ -1,3 +1,11 @@
+/*=============================================================================
+    Copyright (c) 2010 Tim Blechmann
+
+    Use, modification and distribution is subject to the Boost Software
+    License, Version 1.0. (See accompanying file LICENSE_1_0.txt or copy at
+    http://www.boost.org/LICENSE_1_0.txt)
+=============================================================================*/
+
 #ifndef COMMON_HEAP_TESTS_HPP_INCLUDED
 #define COMMON_HEAP_TESTS_HPP_INCLUDED
 
@@ -431,5 +439,14 @@ void run_reserve_heap_tests(void)
 
     check_q(q, data);
 }
+
+struct less_with_T
+{
+    typedef int T;
+    bool operator()(const int& a, const int& b) const
+    {
+        return a < b;
+    }
+};
 
 #endif // COMMON_HEAP_TESTS_HPP_INCLUDED

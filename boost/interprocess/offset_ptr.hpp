@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-// (C) Copyright Ion Gaztanaga 2005-2011. Distributed under the Boost
+// (C) Copyright Ion Gaztanaga 2005-2012. Distributed under the Boost
 // Software License, Version 1.0. (See accompanying file
 // LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -44,6 +44,57 @@ struct has_trivial_destructor;
 
 namespace interprocess {
 
+/// @cond
+namespace ipcdetail {
+
+   template<class OffsetType, std::size_t OffsetAlignment>
+   union offset_ptr_internal
+   {
+      OffsetType m_offset; //Distance between this object and pointee address
+      typename ::boost::aligned_storage
+         < sizeof(OffsetType)
+         , (OffsetAlignment == offset_type_alignment) ?
+            ::boost::alignment_of<OffsetType>::value : OffsetAlignment
+         >::type alignment_helper;
+   };
+
+   //Note: using the address of a local variable to point to another address
+   //is not standard conforming and this can be optimized-away by the compiler.
+   //Non-inlining is a method to remain illegal but correct
+   template <class OffsetType>
+   #if defined(_MSC_VER)
+   __declspec(noinline) //this workaround is needed for MSVC compilers
+   #elif defined (__GNUC__)//this workaround is needed for GCC
+   __attribute__((__noinline__))
+   #endif
+   void offset_ptr_set_offset(const volatile void *ptr, const void *this_ptr, OffsetType &offset)
+   {
+      //offset == 1 && ptr != 0 is not legal for this pointer
+      if(!ptr){
+         offset = 1;
+      }
+      else{
+         offset = (OffsetType)((const char*)ptr - (const char*)(this_ptr));
+         BOOST_ASSERT(offset != 1);
+      }
+   }
+
+   template <class OffsetType>
+   #if defined(_MSC_VER)
+   __declspec(noinline)
+   #elif defined (__GNUC__)
+   __attribute__((__noinline__))
+   #endif
+   void * offset_ptr_to_raw_pointer(const void *this_ptr, OffsetType offset)
+   {
+      return static_cast<void*>(
+            (offset-1) ? (const_cast<char*>(reinterpret_cast<const char*>(this_ptr)) + offset) : 0
+         );
+   }
+
+}  //namespace ipcdetail {
+/// @endcond
+
 //!A smart pointer that stores the offset between between the pointer and the
 //!the object it points. This allows offset allows special properties, since
 //!the pointer is independent from the address address of the pointee, if the
@@ -76,67 +127,68 @@ class offset_ptr
 
    //!Constructor from raw pointer (allows "0" pointer conversion).
    //!Never throws.
-   offset_ptr(pointer ptr = 0) {  this->set_offset(ptr); }
+   offset_ptr(pointer ptr = 0)
+   {  ipcdetail::offset_ptr_set_offset(ptr, this, this->internal.m_offset);  }
 
    //!Constructor from other pointer.
    //!Never throws.
    template <class T>
    offset_ptr( T *ptr
              , typename ipcdetail::enable_if< ipcdetail::is_convertible<T*, PointedType*> >::type * = 0)
-   {  this->set_offset(static_cast<PointedType*>(ptr)); }
+   {  ipcdetail::offset_ptr_set_offset(static_cast<PointedType*>(ptr), this, this->internal.m_offset);  }
 
    //!Constructor from other offset_ptr
    //!Never throws.
    offset_ptr(const offset_ptr& ptr)
-   {  this->set_offset(ptr.get());   }
+   {  ipcdetail::offset_ptr_set_offset(ptr.get(), this, this->internal.m_offset);  }
 
    //!Constructor from other offset_ptr. If pointers of pointee types are
    //!convertible, offset_ptrs will be convertibles. Never throws.
    template<class T2, class P2, class O2, std::size_t A2>
    offset_ptr( const offset_ptr<T2, P2, O2, A2> &ptr
              , typename ipcdetail::enable_if< ipcdetail::is_convertible<T2*, PointedType*> >::type * = 0)
-   {  this->set_offset(static_cast<PointedType*>(ptr.get()));   }
+   {  ipcdetail::offset_ptr_set_offset(static_cast<PointedType*>(ptr.get()), this, this->internal.m_offset);  }
 
    //!Emulates static_cast operator.
    //!Never throws.
    template<class T2, class P2, class O2, std::size_t A2>
    offset_ptr(const offset_ptr<T2, P2, O2, A2> & r, ipcdetail::static_cast_tag)
-   {  this->set_offset(static_cast<PointedType*>(r.get()));   }
+   {  ipcdetail::offset_ptr_set_offset(static_cast<PointedType*>(r.get()), this, this->internal.m_offset);  }
 
    //!Emulates const_cast operator.
    //!Never throws.
    template<class T2, class P2, class O2, std::size_t A2>
    offset_ptr(const offset_ptr<T2, P2, O2, A2> & r, ipcdetail::const_cast_tag)
-   {  this->set_offset(const_cast<PointedType*>(r.get()));   }
+   {  ipcdetail::offset_ptr_set_offset(const_cast<PointedType*>(r.get()), this, this->internal.m_offset);   }
 
    //!Emulates dynamic_cast operator.
    //!Never throws.
    template<class T2, class P2, class O2, std::size_t A2>
    offset_ptr(const offset_ptr<T2, P2, O2, A2> & r, ipcdetail::dynamic_cast_tag)
-   {  this->set_offset(dynamic_cast<PointedType*>(r.get()));   }
+   {  ipcdetail::offset_ptr_set_offset(dynamic_cast<PointedType*>(r.get()), this, this->internal.m_offset);  }
 
    //!Emulates reinterpret_cast operator.
    //!Never throws.
    template<class T2, class P2, class O2, std::size_t A2>
    offset_ptr(const offset_ptr<T2, P2, O2, A2> & r, ipcdetail::reinterpret_cast_tag)
-   {  this->set_offset(reinterpret_cast<PointedType*>(r.get()));   }
+   {  ipcdetail::offset_ptr_set_offset(reinterpret_cast<PointedType*>(r.get()), this, this->internal.m_offset);   }
 
    //!Obtains raw pointer from offset.
    //!Never throws.
-   pointer get()const
-   {  return this->to_raw_pointer();   }
+   pointer get() const
+   {  return (pointer)ipcdetail::offset_ptr_to_raw_pointer(this, this->internal.m_offset);   }
 
    offset_type get_offset() const
    {  return internal.m_offset;  }
 
    //!Pointer-like -> operator. It can return 0 pointer.
    //!Never throws.
-   pointer operator->() const          
+   pointer operator->() const
    {  return this->get(); }
 
    //!Dereferencing operator, if it is a null offset_ptr behavior
    //!   is undefined. Never throws.
-   reference operator* () const          
+   reference operator* () const
    {
       pointer p = this->get();
       reference r = *p;
@@ -146,25 +198,25 @@ class offset_ptr
    //!Indexing operator.
    //!Never throws.
    template<class T>
-   reference operator[](T idx) const  
+   reference operator[](T idx) const
    {  return this->get()[idx];  }
 
    //!Assignment from pointer (saves extra conversion).
    //!Never throws.
    offset_ptr& operator= (pointer from)
-   {  this->set_offset(from); return *this;  }
+   {  ipcdetail::offset_ptr_set_offset(from, this, this->internal.m_offset); return *this;  }
 
    //!Assignment from other offset_ptr.
    //!Never throws.
    offset_ptr& operator= (const offset_ptr & pt)
-   {  pointer p(pt.get());  (void)p; this->set_offset(p);  return *this;  }
+   {  ipcdetail::offset_ptr_set_offset(pt.get(), this, this->internal.m_offset);  return *this;  }
 
    //!Assignment from related offset_ptr. If pointers of pointee types
    //!   are assignable, offset_ptrs will be assignable. Never throws.
    template<class T2, class P2, class O2, std::size_t A2>
    typename ipcdetail::enable_if<ipcdetail::is_convertible<T2*, PointedType*>, offset_ptr&>::type
       operator= (const offset_ptr<T2, P2, O2, A2> & ptr)
-   {  this->set_offset(static_cast<PointedType*>(ptr.get()));  return *this;  }
+   {  ipcdetail::offset_ptr_set_offset(static_cast<PointedType*>(ptr.get()), this, this->internal.m_offset);  return *this;  }
 
    //!offset_ptr += difference_type.
    //!Never throws.
@@ -199,7 +251,7 @@ class offset_ptr
 
    //!safe bool conversion operator.
    //!Never throws.
-   operator unspecified_bool_type() const 
+   operator unspecified_bool_type() const
    {  return this->get()? &self_t::unspecified_bool_type_func : 0;   }
 
    //!Not operator. Not needed in theory, but improves portability.
@@ -309,63 +361,13 @@ class offset_ptr
 
    private:
    /// @cond
-
-   //Note: using the address of a local variable to point to another address
-   //is not standard conforming and this can be optimized-away by the compiler.
-   //Non-inlining is a method to remain illegal and correct
-   #if defined(_MSC_VER)
-   __declspec(noinline) //this workaround is needed for MSVC compilers
-   #elif defined (__GNUC__)//this workaround is needed for GCC
-   __attribute__((__noinline__))
-   #endif
-   void set_offset(const PointedType *ptr)
-   {
-      #if defined (__GNUC__)
-      //asm(""); //Prevents the function to be optimized-away (provokes an special "side-effect")
-      #endif
-      //offset == 1 && ptr != 0 is not legal for this pointer
-      if(!ptr){
-         internal.m_offset = 1;
-      }
-      else{
-         internal.m_offset = (OffsetType)((const char*)ptr - (const char*)(this));
-         BOOST_ASSERT(internal.m_offset != 1);
-      }
-   }
-
-   #if defined(_MSC_VER) && (_MSC_VER >= 1400)
-   __declspec(noinline)
-   #elif defined (__GNUC__)
-   __attribute__((__noinline__))
-   #endif
-   PointedType * to_raw_pointer() const
-   {
-      #if defined (__GNUC__)
-      //asm(""); //Prevents the function to be optimized-away (provokes an special "side-effect")
-      #endif
-      return static_cast<PointedType *>(
-         static_cast<void*>(
-            (internal.m_offset == 1) ?
-               0 :
-                  (const_cast<char*>(reinterpret_cast<const char*>(this)) + internal.m_offset)
-         )
-      );
-   }
-
    void inc_offset(DifferenceType bytes)
    {  internal.m_offset += bytes;   }
 
    void dec_offset(DifferenceType bytes)
    {  internal.m_offset -= bytes;   }
 
-   union internal_type{
-      OffsetType m_offset; //Distance between this object and pointee address
-    typename ::boost::aligned_storage
-         < sizeof(OffsetType)
-         , (OffsetAlignment == offset_type_alignment) ?
-            ::boost::alignment_of<OffsetType>::value : OffsetAlignment
-         >::type alignment_helper;
-   } internal;
+   ipcdetail::offset_ptr_internal<OffsetType, OffsetAlignment> internal;
    /// @endcond
 };
 
@@ -387,36 +389,36 @@ inline std::basic_istream<E, T> & operator>>
 template<class T1, class P1, class O1, std::size_t A1, class T2, class P2, class O2, std::size_t A2>
 inline boost::interprocess::offset_ptr<T1, P1, O1, A1>
    static_pointer_cast(const boost::interprocess::offset_ptr<T2, P2, O2, A2> & r)
-{ 
+{
    return boost::interprocess::offset_ptr<T1, P1, O1, A1>
-            (r, boost::interprocess::ipcdetail::static_cast_tag()); 
+            (r, boost::interprocess::ipcdetail::static_cast_tag());
 }
 
 //!Simulation of const_cast between pointers. Never throws.
 template<class T1, class P1, class O1, std::size_t A1, class T2, class P2, class O2, std::size_t A2>
 inline boost::interprocess::offset_ptr<T1, P1, O1, A1>
    const_pointer_cast(const boost::interprocess::offset_ptr<T2, P2, O2, A2> & r)
-{ 
+{
    return boost::interprocess::offset_ptr<T1, P1, O1, A1>
-            (r, boost::interprocess::ipcdetail::const_cast_tag()); 
+            (r, boost::interprocess::ipcdetail::const_cast_tag());
 }
 
 //!Simulation of dynamic_cast between pointers. Never throws.
 template<class T1, class P1, class O1, std::size_t A1, class T2, class P2, class O2, std::size_t A2>
 inline boost::interprocess::offset_ptr<T1, P1, O1, A1>
    dynamic_pointer_cast(const boost::interprocess::offset_ptr<T2, P2, O2, A2> & r)
-{ 
+{
    return boost::interprocess::offset_ptr<T1, P1, O1, A1>
-            (r, boost::interprocess::ipcdetail::dynamic_cast_tag()); 
+            (r, boost::interprocess::ipcdetail::dynamic_cast_tag());
 }
 
 //!Simulation of reinterpret_cast between pointers. Never throws.
 template<class T1, class P1, class O1, std::size_t A1, class T2, class P2, class O2, std::size_t A2>
 inline boost::interprocess::offset_ptr<T1, P1, O1, A1>
    reinterpret_pointer_cast(const boost::interprocess::offset_ptr<T2, P2, O2, A2> & r)
-{ 
+{
    return boost::interprocess::offset_ptr<T1, P1, O1, A1>
-            (r, boost::interprocess::ipcdetail::reinterpret_cast_tag()); 
+            (r, boost::interprocess::ipcdetail::reinterpret_cast_tag());
 }
 
 }  //namespace interprocess {
@@ -444,7 +446,7 @@ namespace interprocess {
 //!Never throws.
 template <class T, class P, class O, std::size_t A>
 inline T * to_raw_pointer(boost::interprocess::offset_ptr<T, P, O, A> const & p)
-{  return p.get();   }
+{  return ipcdetail::to_raw_pointer(p);   }
 //#if !defined(_MSC_VER) || (_MSC_VER >= 1400)
 }  //namespace interprocess
 //#endif

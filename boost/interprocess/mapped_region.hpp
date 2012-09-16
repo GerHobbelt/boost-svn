@@ -1,6 +1,6 @@
 //////////////////////////////////////////////////////////////////////////////
 //
-// (C) Copyright Ion Gaztanaga 2005-2011. Distributed under the Boost
+// (C) Copyright Ion Gaztanaga 2005-2012. Distributed under the Boost
 // Software License, Version 1.0. (See accompanying file
 // LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 //
@@ -689,8 +689,8 @@ inline mapped_region::mapped_region
 
 inline bool mapped_region::shrink_by(std::size_t bytes, bool from_back)
 {
-   void *shrink_page_start;
-   std::size_t shrink_page_bytes;
+   void *shrink_page_start = 0;
+   std::size_t shrink_page_bytes = 0;
    if(m_is_xsi || !this->priv_shrink_param_check(bytes, from_back, shrink_page_start, shrink_page_bytes)){
       return false;
    }
